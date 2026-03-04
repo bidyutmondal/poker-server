@@ -82,11 +82,11 @@ public class GameState {
         for (PlayerState p : players.values()) {
             p.reset();
         }
-        communityCards.clear();
-        deck.clear();
+        communityCards = new ArrayList<>();
+        deck = new ArrayList<>();
         pot = 0;
         winnerId = null;
-        winners.clear();
+        winners = new ArrayList<>();
         stage = GameStage.PRE_FLOP;
     }
 

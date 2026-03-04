@@ -9,7 +9,10 @@ import java.util.*;
 public class GameService {
 
     public void startGame(GameState game) {
-        if (game.getPlayersInHand() < 2) return;
+        long playersWithChips = game.getPlayers().values().stream()
+                .filter(p -> p.getTotalChips() > 0)
+                .count();
+        if (playersWithChips < 2) return;
         
         // Reset everything for a new hand
         game.resetHand();

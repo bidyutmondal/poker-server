@@ -13,6 +13,9 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class GameWebSocketHandler extends TextWebSocketHandler {
@@ -20,6 +23,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final GameService gameService;
     private final ObjectMapper objectMapper;
     private final Map<String, Set<WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     public GameWebSocketHandler(RoomService roomService, GameService gameService, ObjectMapper objectMapper) {
         this.roomService = roomService;
@@ -109,6 +113,34 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         // Broadcast updated game state
         broadcastGameState(code);
+
+        // Automatically start next hand if game is over
+        System.out.println("[DEBUG] After action, stage=" + gameState.getStage());
+        if (gameState.getStage() == GameStage.GAME_OVER) {
+            System.out.println("[DEBUG] GAME_OVER detected, scheduling next hand in 6s");
+            scheduleNextHand(code, gameState);
+        }
+    }
+
+    private void scheduleNextHand(String code, GameState gameState) {
+        scheduler.schedule(() -> {
+            try {
+                Room room = roomService.getRoom(code);
+                System.out.println("[DEBUG] Scheduler fired. room=" + room + " gameStarted="
+                        + (room != null ? room.isGameStarted() : "N/A")
+                        + " stage=" + (room != null ? room.getGameState().getStage() : "N/A"));
+                if (room != null && room.isGameStarted() && room.getGameState().getStage() == GameStage.GAME_OVER) {
+                    System.out.println("[DEBUG] Starting next hand...");
+                    gameService.startGame(room.getGameState());
+                    System.out.println("[DEBUG] Next hand started, broadcasting...");
+                    broadcastGameState(code);
+                    System.out.println("[DEBUG] Broadcast done.");
+                }
+            } catch (Exception e) {
+                System.out.println("[DEBUG] Scheduler exception: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, 6, TimeUnit.SECONDS);
     }
 
     private void handleBet(String code, WebSocketMessage message, GameState gameState) {
@@ -188,12 +220,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         for (WebSocketSession session : sessions) {
-            try {
-                if (session.isOpen()) {
-                    session.sendMessage(new TextMessage(payload));
+            synchronized (session) {
+                try {
+                    if (session.isOpen()) {
+                        session.sendMessage(new TextMessage(payload));
+                    }
+                } catch (IOException e) {
+                    // Session error, will be handled in afterConnectionClosed
                 }
-            } catch (IOException e) {
-                // Session error, will be handled in afterConnectionClosed
             }
         }
     }
