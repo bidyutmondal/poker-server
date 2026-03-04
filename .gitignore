@@ -1,0 +1,14 @@
+# Maven
+target/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+
+# IDE
+*.iml
+.vscode/
