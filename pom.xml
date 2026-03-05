@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.example</groupId>
-    <artifactId>poker-playground-server</artifactId>
+    <artifactId>poker-server</artifactId>
     <version>0.1.0</version>
     <packaging>jar</packaging>
 
-    <name>poker-playground-server</name>
+    <name>poker-server</name>
     <description>Backend service for Poker Playground</description>
 
     <parent>
