@@ -3,6 +3,7 @@ package com.example.poker.controller;
 import com.example.poker.model.Player;
 import com.example.poker.model.Room;
 import com.example.poker.service.RoomService;
+import com.example.poker.websocket.GameWebSocketHandler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,9 +25,11 @@ import jakarta.validation.constraints.NotBlank;
 @Tag(name = "Rooms", description = "Room lifecycle and game control endpoints")
 public class RoomController {
     private final RoomService roomService;
+    private final GameWebSocketHandler gameWebSocketHandler;
 
-    public RoomController(RoomService roomService) {
+    public RoomController(RoomService roomService, GameWebSocketHandler gameWebSocketHandler) {
         this.roomService = roomService;
+        this.gameWebSocketHandler = gameWebSocketHandler;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -125,6 +128,7 @@ public class RoomController {
         try {
             roomService.removePlayer(code, req.getPlayerId());
             Room room = roomService.getRoom(code);
+            gameWebSocketHandler.broadcastPlayerLeft(code);
             return ResponseEntity.ok(room != null ? room : "Room empty");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(e.getMessage()));

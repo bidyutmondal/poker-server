@@ -263,6 +263,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         return null;
     }
 
+    public void broadcastPlayerLeft(String code) {
+        broadcastToRoom(code, new WebSocketMessage("PLAYER_LEFT", null));
+        broadcastGameState(code);
+        
+        Room room = roomService.getRoom(code);
+        if (room != null && room.isGameStarted() && room.getGameState().getStage() == GameStage.GAME_OVER) {
+            scheduleNextHand(code, room.getGameState());
+        }
+    }
+
     // DTO for WebSocket messages
     public static class WebSocketMessage {
         public String action;
